@@ -66,8 +66,8 @@ Update equations are (global kinematic model):
 2. Timestep Length and Elapsed Duration (N & dt)
 >Student discusses the reasoning behind the chosen N (timestep length) and dt (elapsed duration between timesteps) values. Additionally the student details the previous values tried.
 
-I choose `N=15` and `dt=0.1`. Because my target speed is 100mph, a big number of N will have a very long predictive trajectory which may not be realistic. Moreover, big `N` means more computations in solving optimization problem. The solver may return a bad solution due to the time constraints. (`"Numeric max_cpu_time          0.5\n";`)
-Finally, `dt=0.1` because of the latency in the system. Also, I found that `N*dt` is 1.5 seconds which is good enough for my 100mph setting.
+I choose `N=15` and `dt=0.1`. Because my target speed is 70mph, a big number of N will have a very long predictive trajectory which may not be realistic. Moreover, big `N` means more computations in solving optimization problem. The solver may return a bad solution due to the time constraints. (`"Numeric max_cpu_time          0.5\n";`)
+Finally, `dt=0.1` because of the latency in the system. Also, I found that `N*dt` is 1.5 seconds which is good enough for my 70mph setting.
 
 3. Polynomial Fitting and MPC Preprocessing
 >A polynomial is fitted to waypoints. If the student preprocesses waypoints, the vehicle state, and/or actuators prior to the MPC procedure it is described.
@@ -105,4 +105,4 @@ double epsi = -atan(coeffs[1]);
 state << 0, 0, 0, v, cte, epsi;
 ```
 Note that these equations consider `px=py=psi=0` because of the coordinate transformation.
-Latency is very important in successfully run a lap in simulator! In high speed, e.g. 100mph, without taking into acount of latency, vehicle will go off track!
+Latency is very important in successfully run a lap in simulator! In high speed, e.g. 70mph, without taking into acount of latency, vehicle will go off track!
