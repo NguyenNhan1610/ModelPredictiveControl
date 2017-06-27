@@ -60,7 +60,8 @@ By carefully transforming this problem to a constraint optimization problem, MPC
 
 The state is defined the same as the course's lecture, which is [x,y,psi,v,delta,acceleration], where delta and acceleration are actuators.
 Update equations are (global kinematic model):
-<img src="GKM.png" width=80% height=80%>
+
+<img src="GKM.png" width=40% height=40%>
 
 2. Timestep Length and Elapsed Duration (N & dt)
 >Student discusses the reasoning behind the chosen N (timestep length) and dt (elapsed duration between timesteps) values. Additionally the student details the previous values tried.
