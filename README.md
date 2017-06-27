@@ -1,6 +1,9 @@
 # CarND-Controls-MPC
 Self-Driving Car Engineer Nanodegree Program
 
+This is the Final project of the SDC term2 program. The **MPC** stands for **Model Predictive Control**, which minimizes the cost between the reference trajectory (the given path approximated by a 3rd polynomial) and the predictive trajectory (calculated with the use of motion model).
+By carefully transforming this problem to a constraint optimization problem, MPC do a good job in a simulator provided by Udacity!
+
 ---
 
 ## Dependencies
@@ -50,66 +53,55 @@ Self-Driving Car Engineer Nanodegree Program
 3. Compile: `cmake .. && make`
 4. Run it: `./mpc`.
 
-## Tips
+## [Rubric](https://review.udacity.com/#!/rubrics/896/view)
 
-1. It's recommended to test the MPC on basic examples to see if your implementation behaves as desired. One possible example
-is the vehicle starting offset of a straight line (reference). If the MPC implementation is correct, after some number of timesteps
-(not too many) it should find and track the reference line.
-2. The `lake_track_waypoints.csv` file has the waypoints of the lake track. You could use this to fit polynomials and points and see of how well your model tracks curve. NOTE: This file might be not completely in sync with the simulator so your solution should NOT depend on it.
-3. For visualization this C++ [matplotlib wrapper](https://github.com/lava/matplotlib-cpp) could be helpful.
+1. The Model
+>Student describes their model in detail. This includes the state, actuators and update equations.
 
-## Editor Settings
+The state is defined the same as the course's lecture, which is [x,y,psi,v,delta,acceleration], where delta and acceleration are actuators.
+Update equations are (global kinematic model):
+<img src="GKM.png" width=80% height=80%>
 
-We've purposefully kept editor configuration files out of this repo in order to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
+2. Timestep Length and Elapsed Duration (N & dt)
+>Student discusses the reasoning behind the chosen N (timestep length) and dt (elapsed duration between timesteps) values. Additionally the student details the previous values tried.
 
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
+I choose `N=15` and `dt=0.1`. Because my target speed is 100mph, a big number of N will have a very long predictive trajectory which may not be realistic. Moreover, big `N` means more computations in solving optimization problem. The solver may return a bad solution due to the time constraints. (`"Numeric max_cpu_time          0.5\n";`)
+Finally, `dt=0.1` because of the latency in the system. Also, I found that `N*dt` is 1.5 seconds which is good enough for my 100mph setting.
 
-## Code Style
+3. Polynomial Fitting and MPC Preprocessing
+>A polynomial is fitted to waypoints. If the student preprocesses waypoints, the vehicle state, and/or actuators prior to the MPC procedure it is described.
 
-Please (do your best to) stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html).
+I used 3rd order of polynomial to fit the waypoints. Moreover, the waypoints is first converted from the map-coordinates to vechicle's coordinates. Vechicle's position will be considered as origin and the x-axis is exactly the heading direction (psi=0).
+```c++
+// convert to car's coordinates! (px, py, and psi will be considered as 0)
+for (int i=0;i<ptsx.size();i++)
+{
+    double shift_x = ptsx[i]-px;
+    double shift_y = ptsy[i]-py;
+    ptsx[i] = (shift_x *cos(0-psi)-shift_y*sin(0-psi));
+    ptsy[i] = (shift_x *sin(0-psi)+shift_y*cos(0-psi));
+}
+```
+An important reason to do so is because it makes it easy to find the polynomail fitting. If we use the map's coordinate system, it is hard to fit a polynomial to a **verticle** trajectory!
 
-## Project Instructions and Rubric
+4. Model Predictive Control with Latency
+>The student implements Model Predictive Control that handles a 100 millisecond latency. Student provides details on how they deal with latency.
 
-Note: regardless of the changes you make, your project must be buildable using
-cmake and make!
-
-More information is only accessible by people who are already enrolled in Term 2
-of CarND. If you are enrolled, see [the project page](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/f1820894-8322-4bb3-81aa-b26b3c6dcbaf/lessons/b1ff3be0-c904-438e-aad3-2b5379f0e0c3/concepts/1a2255a0-e23c-44cf-8d41-39b8a3c8264a)
-for instructions and the project rubric.
-
-## Hints!
-
-* You don't have to follow this directory structure, but if you do, your work
-  will span all of the .cpp files here. Keep an eye out for TODOs.
-
-## Call for IDE Profiles Pull Requests
-
-Help your fellow students!
-
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. Similarly, we omitted IDE profiles in order to we ensure
-that students don't feel pressured to use one IDE or another.
-
-However! I'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE that you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
-
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
-
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
-
-Frankly, I've never been involved in a project with multiple IDE profiles
-before. I believe the best way to handle this would be to keep them out of the
-repo root to avoid clutter. My expectation is that most profiles will include
-instructions to copy files to a new location to get picked up by the IDE, but
-that's just a guess.
-
-One last note here: regardless of the IDE used, every submitted project must
-still be compilable with cmake and make./
+Before the coordinate transformation, I first use the kinematic model to predict the new state at latency time.
+```c++
+// predict state in 100ms of latency
+double latency = 0.1;
+px = px + v*cos(psi)*latency;
+py = py + v*sin(psi)*latency;
+psi = psi - v*delta/Lf*latency; // negative sign: simulator and car's coordinate see psi in opposite way.
+v = v + acceleration*latency;
+```
+Then the waypoints are transformed to the vehecle's coordinate system according to the new positions. After that, we do `polyfit` and `mpc.Solve`. The `cte` and `epsi` are calculated as follows:
+```c++
+double cte = polyeval(coeffs,0);
+double epsi = -atan(coeffs[1]);
+...
+state << 0, 0, 0, v, cte, epsi;
+```
+Note that these equations consider `px=py=psi=0` because of the coordinate transformation.
+Latency is very important in successfully run a lap in simulator! In high speed, e.g. 100mph, without taking into acount of latency, vehicle will go off track!
