@@ -106,3 +106,8 @@ state << 0, 0, 0, v, cte, epsi;
 ```
 Note that these equations consider `px=py=psi=0` because of the coordinate transformation.
 Latency is very important in successfully run a lap in simulator! In high speed, e.g. 70mph, without taking into acount of latency, vehicle will go off track!
+
+* With latency:
+[![with_latency](70mph_with_latency.png)](https://www.youtube.com/watch?v=DutWvU8lTKY)
+* Without latency:
+[![without_latency](70mph_without_latency.png)](https://www.youtube.com/watch?v=SnzHUY7dFSA)
